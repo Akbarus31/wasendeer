@@ -3,16 +3,6 @@
 Script ini berjalan **tanpa desktop / GUI**, cocok untuk **Linux Server / VM / VPS**,  
 dan dapat mengirim **pesan otomatis berulang ke grup WhatsApp**.
 
----
-
-## ✨ Fitur
-- Login WhatsApp via **QR Code**
-- Kirim pesan otomatis ke **grup WhatsApp**
-- Interval pengiriman (misal tiap 1 menit)
-- Session tersimpan (tidak perlu scan QR ulang)
-- Auto reconnect
-- Bisa dijalankan 24/7 di server
-
 
 ---
 
@@ -21,20 +11,16 @@ dan dapat mengirim **pesan otomatis berulang ke grup WhatsApp**.
 Project ini sudah disediakan **script installer (`install.sh`)**  
 sehingga tidak perlu install manual satu per satu.
 
-### 1️⃣ Clone / Upload Project
-```bash
+
+
+## Clone / Upload Project
 git clone <repo-ini>
 cd wasender
 
----
-
-## 🚀 Cara Install (Otomatis)
-
-### 1️⃣ install & setup
-```bash
+## Setup Server
 chmod +x install.sh
 sudo ./install.sh
 
-
-
+## Jalankan Server
+node sender.js
 
