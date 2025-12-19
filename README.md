@@ -13,14 +13,23 @@ sehingga tidak perlu install manual satu per satu.
 
 
 
-## Setup Server
+### Setup Server
 ```bash
 git clone <repo-ini>
 cd wasender
 
 chmod +x install.sh
 sudo ./install.sh
+````
 
-## Jalankan Server
+### Jalakan Server
+```bash
 node sender.js
+```
+
+---
+Github : https://github.com/Akbarus31
+
+
+
 
