@@ -13,11 +13,11 @@ sehingga tidak perlu install manual satu per satu.
 
 
 
-## Clone / Upload Project
+## Setup Server
+```bash
 git clone <repo-ini>
 cd wasender
 
-## Setup Server
 chmod +x install.sh
 sudo ./install.sh
 
