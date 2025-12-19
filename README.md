@@ -1,8 +1,5 @@
 # wasender 📲
 
-**wasender** adalah script WhatsApp sender berbasis **Node.js** menggunakan library  
-[@whiskeysockets/baileys](https://github.com/WhiskeySockets/Baileys).
-
 Script ini berjalan **tanpa desktop / GUI**, cocok untuk **Linux Server / VM / VPS**,  
 dan dapat mengirim **pesan otomatis berulang ke grup WhatsApp**.
 
@@ -35,4 +32,17 @@ sehingga tidak perlu install manual satu per satu.
 ```bash
 git clone <repo-ini>
 cd wasender
+
+### 1️⃣ install & setup
+```bash
+chmod +x install.sh
+sudo ./install.sh
+
+
+### 1️⃣ Jalankan Program
+```bash
+node sender.js
+
+
+
 
