@@ -33,15 +33,14 @@ sehingga tidak perlu install manual satu per satu.
 git clone <repo-ini>
 cd wasender
 
+
+
+## 🚀 Cara Install (Otomatis)
+
 ### 1️⃣ install & setup
 ```bash
 chmod +x install.sh
 sudo ./install.sh
-
-
-### 1️⃣ Jalankan Program
-```bash
-node sender.js
 
 
 
