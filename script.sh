@@ -2,7 +2,7 @@
 
 set -e
 
-echo "🚀 Mulai setup WhatsApp Sender (Baileys)"
+echo "🚀 Mulai setup WhatsApp"
 echo "======================================"
 
 # =========================
@@ -57,4 +57,5 @@ echo "   node sender.js"
 echo ""
 echo "📱 Jika belum login, QR akan muncul"
 echo "=============================="
+
 
