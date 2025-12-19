@@ -15,7 +15,7 @@ sehingga tidak perlu install manual satu per satu.
 
 ### Setup Server
 ```bash
-git clone <repo-ini>
+git clone https://github.com/Akbarus31/wasendeer.git
 cd wasender
 
 chmod +x install.sh
