@@ -13,13 +13,6 @@ dan dapat mengirim **pesan otomatis berulang ke grup WhatsApp**.
 - Auto reconnect
 - Bisa dijalankan 24/7 di server
 
----
-
-## 📦 Kebutuhan Sistem
-- OS: Ubuntu / Debian (direkomendasikan)
-- Node.js **v20+**
-- npm
-- Akses internet
 
 ---
 
@@ -33,7 +26,7 @@ sehingga tidak perlu install manual satu per satu.
 git clone <repo-ini>
 cd wasender
 
-
+---
 
 ## 🚀 Cara Install (Otomatis)
 
