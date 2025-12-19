@@ -1,4 +1,4 @@
-# wasender 📲
+# Akbrrus -  WASENDERS 📲
 
 Script ini berjalan **tanpa desktop / GUI**, cocok untuk **Linux Server / VM / VPS**,  
 dan dapat mengirim **pesan otomatis berulang ke grup WhatsApp**.
