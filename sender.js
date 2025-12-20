@@ -73,16 +73,25 @@ async function start() {
         if (rows.length) groupName = rows[0].group_name
       }
 
+      let senderName = msg.pushName || sender; // default pakai pushName
+      try {
+        const groupMetadata = await sock.groupMetadata(groupId)
+        const participant = groupMetadata.participants.find(p => p.id === sender)
+        if (participant?.id && participant?.notify) {
+          senderName = participant.notify || senderName
+        }
+      } catch {}
+
       await db.execute(
         `REPLACE INTO wa_handover_messages
         (group_id, group_name, message, updated_by)
         VALUES (?, ?, ?, ?)`,
-        [groupId, groupName, newMessage, sender]
+        [groupId, groupName, newMessage, senderName]
       )
 
       await sock.sendMessage(groupId, {
-        text: `✅ Pesan handover berhasil diperbarui\n✍️ Oleh: ${sender}`
-      })
+        text: `✅ Pesan handover berhasil diperbarui\n✍️ Oleh: ${senderName}`
+      });
 
       console.log(`📝 Handover diupdate oleh ${sender}`)
     }
@@ -176,6 +185,8 @@ ${messageText}
     }
   }, 60 * 1000) // tiap 1 menit
 }
+
+
 
 // =============================
 // LOGOUT BERSIH
