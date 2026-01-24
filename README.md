@@ -12,8 +12,8 @@
 git clone https://github.com/Akbarus31/wasendeer.git
 cd wasender
 
-chmod +x install.sh
-sudo ./install.sh
+chmod +x script.sh
+sudo ./script.sh
 ````
 
 ### Jalakan Server
