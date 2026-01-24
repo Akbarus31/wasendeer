@@ -11,8 +11,9 @@ CREATE TABLE `wa_handover_messages` (
 )
 COLLATE='utf8mb4_0900_ai_ci'
 ENGINE=InnoDB
-AUTO_INCREMENT=9
+AUTO_INCREMENT=11
 ;
+
 
 
 CREATE TABLE `wa_message_logs` (
@@ -27,5 +28,5 @@ CREATE TABLE `wa_message_logs` (
 )
 COLLATE='utf8mb4_0900_ai_ci'
 ENGINE=InnoDB
-AUTO_INCREMENT=8
+AUTO_INCREMENT=35
 ;
