@@ -8,20 +8,38 @@ import fs from 'fs'
 import mysql from 'mysql2/promise'
 
 // =============================
-// DATABASE
+// DATABASE CONNECTIONS
 // =============================
-const db = mysql.createPool({
-  host: '127.0.0.1',
-  user: 'root',
+
+// DB untuk WA Sender (handover + wa logs)
+const dbWASender = mysql.createPool({
+  host: '192.168.2.143',
+  user: 'botuser',
   password: 'C0b412345@',
   database: 'db_wasender',
   waitForConnections: true,
   connectionLimit: 10
 })
 
+// DB untuk Bot Rekaman (tbl_rekaman_log)
+const dbBot = mysql.createPool({
+  host: '192.168.2.143',
+  user: 'botuser',
+  password: 'C0b412345@',
+  database: 'db_bot',
+  waitForConnections: true,
+  connectionLimit: 10
+})
+
+
+// =============================
+// GLOBAL STATE
+// =============================
 let sockGlobal = null
 let isLoggingOut = false
 let schedulerStarted = false
+let alertSchedulerStarted = false
+
 
 // =============================
 // START BOT
@@ -33,7 +51,9 @@ async function start() {
 
   sock.ev.on('creds.update', saveCreds)
 
-  // ===== MESSAGE LISTENER =====
+  // =============================
+  // MESSAGE LISTENER (GROUP ONLY)
+  // =============================
   sock.ev.on('messages.upsert', async ({ messages }) => {
     const msg = messages[0]
     if (!msg.message) return
@@ -48,7 +68,9 @@ async function start() {
 
     if (!text) return
 
-    // ===== COMMAND HANDOVER =====
+    // =============================
+    // COMMAND: !sethandover
+    // =============================
     if (text.startsWith('!sethandover')) {
       const newMessage = text.replace('!sethandover', '').trim()
 
@@ -59,45 +81,48 @@ async function start() {
         return
       }
 
-      // ambil metadata grup, fallback ke DB jika gagal
+      // ambil nama grup
       let groupName = 'UNKNOWN'
       try {
         const metadata = await sock.groupMetadata(groupId)
         groupName = metadata.subject
       } catch {
-        console.error('❌ Gagal ambil nama grup, pakai DB')
-        const [rows] = await db.execute(
-          `SELECT group_name FROM wa_handover_messages WHERE group_id = ? ORDER BY id DESC LIMIT 1`,
+        const [rows] = await dbWASender.execute(
+          `SELECT group_name
+           FROM wa_handover_messages
+           WHERE group_id = ?
+           ORDER BY id DESC LIMIT 1`,
           [groupId]
         )
         if (rows.length) groupName = rows[0].group_name
       }
 
-      let senderName = msg.pushName || sender; // default pakai pushName
+      // ambil nama pengirim
+      let senderName = msg.pushName || sender
       try {
-        const groupMetadata = await sock.groupMetadata(groupId)
-        const participant = groupMetadata.participants.find(p => p.id === sender)
-        if (participant?.id && participant?.notify) {
-          senderName = participant.notify || senderName
-        }
+        const meta = await sock.groupMetadata(groupId)
+        const p = meta.participants.find(x => x.id === sender)
+        if (p?.notify) senderName = p.notify
       } catch {}
 
-      await db.execute(
+      await dbWASender.execute(
         `REPLACE INTO wa_handover_messages
-        (group_id, group_name, message, updated_by)
-        VALUES (?, ?, ?, ?)`,
+         (group_id, group_name, message, updated_by)
+         VALUES (?, ?, ?, ?)`,
         [groupId, groupName, newMessage, senderName]
       )
 
       await sock.sendMessage(groupId, {
         text: `✅ Pesan handover berhasil diperbarui\n✍️ Oleh: ${senderName}`
-      });
+      })
 
-      console.log(`📝 Handover diupdate oleh ${sender}`)
+      console.log(`📝 Handover diupdate | ${groupName}`)
     }
   })
 
-  // ===== CONNECTION UPDATE =====
+  // =============================
+  // CONNECTION UPDATE
+  // =============================
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update
 
@@ -108,7 +133,8 @@ async function start() {
 
     if (connection === 'open') {
       console.log('✅ WhatsApp connected')
-      startScheduler(sock)
+      startRekamanAlertScheduler(sock)
+	  startScheduler(sock)
     }
 
     if (connection === 'close') {
@@ -123,7 +149,7 @@ async function start() {
 }
 
 // =============================
-// SCHEDULER KIRIM PESAN
+// SCHEDULER HANDOVER
 // =============================
 function startScheduler(sock) {
   if (schedulerStarted) return
@@ -131,59 +157,116 @@ function startScheduler(sock) {
 
   setInterval(async () => {
     try {
-      const [rows] = await db.execute(`
+      const [rows] = await dbWASender.execute(`
         SELECT h.*
         FROM wa_handover_messages h
         INNER JOIN (
-            SELECT group_id, MAX(id) AS max_id
-            FROM wa_handover_messages
-            GROUP BY group_id
-        ) latest ON h.group_id = latest.group_id AND h.id = latest.max_id
+          SELECT group_id, MAX(id) AS max_id
+          FROM wa_handover_messages
+          GROUP BY group_id
+        ) x
+        ON h.group_id = x.group_id AND h.id = x.max_id
       `)
 
       for (const row of rows) {
-        const groupName = row.group_name || 'UNKNOWN'
-        const groupId = row.group_id
-        const messageText = row.message || 'Tidak ada pesan'
-
-        const waktu = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
+        const waktu = new Date().toLocaleString('id-ID', {
+          timeZone: 'Asia/Jakarta'
+        })
 
         const finalMessage =
-`===== ${groupName} =====
+`===== ${row.group_name} =====
 ⏰ Reminder Otomatis
 
-${messageText}
+${row.message}
 
 ────────────────
-🤖 Pesan ini dikirim dari bot
-🕒 ${waktu} WIB`
+_This message automated send by OCO Automation | ${waktu}_`
 
         try {
-          await sock.sendMessage(groupId, { text: finalMessage })
+          await sock.sendMessage(row.group_id, { text: finalMessage })
 
-          await db.execute(
+          await dbWASender.execute(
             `INSERT INTO wa_message_logs
              (group_id, group_name, message, status)
              VALUES (?, ?, ?, 'SUCCESS')`,
-            [groupId, groupName, finalMessage]
+            [row.group_id, row.group_name, finalMessage]
           )
 
-          console.log(`📤 Terkirim ke ${groupName}`)
+          console.log(`📤 Reminder terkirim | ${row.group_name}`)
         } catch (err) {
-          await db.execute(
-            `INSERT INTO wa_message_logs
-             (group_id, group_name, message, status, error_message)
-             VALUES (?, ?, ?, 'FAILED', ?)`,
-            [groupId, groupName, finalMessage, err.message]
-          )
-
-          console.error('❌ Gagal kirim:', err.message)
+          console.error('❌ Gagal kirim reminder:', err.message)
         }
       }
     } catch (e) {
-      console.error('❌ Gagal ambil data handover:', e.message)
+      console.error('❌ Scheduler handover error:', e.message)
     }
-  }, 60 * 1000) // tiap 1 menit
+  }, 30 * 60 * 1000) // 30 menit
+}
+
+
+// =============================
+// SCHEDULER ALERT
+// =============================
+function startRekamanAlertScheduler(sock) {
+  if (alertSchedulerStarted) return
+  alertSchedulerStarted = true
+
+  setInterval(async () => {
+    try {
+      const [rows] = await dbBot.execute(`
+        SELECT *
+        FROM tbl_rekaman_log
+        WHERE rc <> '00'
+        AND alert_sent = 0
+        ORDER BY created_at ASC
+        LIMIT 5
+      `)
+
+      if (!rows.length) return
+
+      for (const log of rows) {
+        const waktuLog = new Date(log.created_at).toLocaleString('id-ID', {
+          timeZone: 'Asia/Jakarta'
+        })
+
+        const waktuKirim = new Date().toLocaleString('id-ID', {
+          timeZone: 'Asia/Jakarta'
+        })
+
+        const alertMessage =
+		`🚨 *ALERT REKAMAN* 🚨
+
+		RC        : ${log.rc}
+		Level     : ${log.level}
+		Unique ID : ${log.unique_id}
+		Source    : ${log.source || '-'}
+		Waktu     : ${waktuLog}
+
+		Pesan:
+		${log.message}
+
+		────────────────
+		_This message automated send by OCO Automation | ${waktuKirim}_`
+
+        const targetJid = '120363405576524480@g.us'
+
+        await sock.sendMessage(targetJid, { text: alertMessage })
+
+        await dbBot.execute(
+          `UPDATE tbl_rekaman_log
+           SET alert_sent = 1
+           WHERE id = ?`,
+          [log.id]
+        )
+
+        console.log(
+          `🚨 Alert terkirim | rc=${log.rc} | log_id=${log.id}`
+        )
+      }
+    } catch (err) {
+      console.error('❌ Scheduler alert error:', err.message)
+    }
+  }, 60 * 1000)
 }
 
 
@@ -205,4 +288,6 @@ async function logout() {
 process.on('SIGINT', logout)
 process.on('SIGTERM', logout)
 
+// =============================
 start()
+
